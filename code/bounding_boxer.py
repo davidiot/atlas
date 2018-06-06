@@ -5,6 +5,8 @@ import json
 
 from PIL import Image
 
+BOX_SHAPES = [(10, 10), (30, 30), (70, 70), (150, 150)]
+
 
 def compute_bounding_box(input_path, padding, show_image=False):
     input_image = Image.open(input_path).convert("1")  # convert to black and white
@@ -28,38 +30,19 @@ def generate_canonical_boxes(FLAGS):
     prefix = os.path.join(FLAGS.data_dir, "ATLAS_R1.1")
     mask_slice_paths = glob.glob(os.path.join(prefix, "Site*/**/*/*LesionSmooth*/*.jpg"))
 
-    max_height_path = ''
-    max_width_path = ''
-    min_height_path = ''
-    min_width_path = ''
-    max_width = 0
-    max_height = 0
-    min_width = 150
-    min_height = 150
-
+    shape_counts = {shape: 0 for shape in BOX_SHAPES}
     for slice_path in mask_slice_paths:
         try:
             bbox = compute_bounding_box(slice_path, 0)
             height = bbox[3] - bbox[1]
             width = bbox[2] - bbox[0]
-            if width > max_width:
-                max_width_path = slice_path
-                max_width = width
-            elif width < min_width:
-                min_width_path = slice_path
-                min_width = width
-            if height > max_height:
-                max_height_path = slice_path
-                max_height = height
-            elif height < min_height:
-                min_height_path = slice_path
-                min_height = height
+            for shape in BOX_SHAPES:
+                if width <= shape[0] + 2 and height<= shape[1] + 2:
+                    shape_counts[shape] = shape_counts[shape] + 1
+                    break
             # base_name = os.path.splitext(slice_path)[0]
             # with open(base_name + "-canonical.json", "w") as fout:
             #     json.dump(compute_bounding_box(slice_path, 3, True), fout)
         except IndexError:
             pass
-    print("max_height: ", max_height, " | ", max_height_path)
-    print("max_width: ", max_width, " | ", max_width_path)
-    print("min_height: ", min_height, " | ", min_height_path)
-    print("min_width: ", min_width, " | ", min_width_path)
+    print(shape_counts)
