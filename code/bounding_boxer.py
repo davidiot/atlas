@@ -12,9 +12,9 @@ def compute_bounding_box(input_path, padding, show_image=False):
     vertical_indices = np.argwhere(input_array.sum(axis=0))[:, 0]
     horizontal_indices = np.argwhere(input_array.sum(axis=1))[:, 0]
     x1 = vertical_indices[0]
-    x2 = vertical_indices[-1]
+    x2 = vertical_indices[-1] + 1
     y1 = horizontal_indices[0]
-    y2 = horizontal_indices[-1]
+    y2 = horizontal_indices[-1] + 1
     bbox = (max(x1 - padding, 0),
             max(y1 - padding, 0),
             min(x2 + padding, input_array.shape[0] - 1),
