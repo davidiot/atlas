@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 import tensorflow as tf
+import bounding_boxer as bb
 
 from split import setup_train_dev_split
 
@@ -153,7 +154,7 @@ def main(_):
         f"Your TensorFlow version: {tf.__version__}.")
 
   # Defines {FLAGS.train_dir}, maybe based on {FLAGS.experiment_dir}
-  if not FLAGS.experiment_name:
+  if FLAGS.mode != 'box' and not FLAGS.experiment_name:
     raise Exception("You need to specify an --experiment_name or --train_dir.")
   FLAGS.train_dir = (FLAGS.train_dir
                      or os.path.join(EXPERIMENTS_DIR, FLAGS.experiment_name))
@@ -208,6 +209,8 @@ def main(_):
                                                         num_samples=1000,
                                                         plot=True)
       logging.info(f"dev dice_coefficient: {dev_dice}")
+  elif FLAGS.mode == "box":
+    bb.generate_canonical_boxes(FLAGS)
 
 
 if __name__ == "__main__":
