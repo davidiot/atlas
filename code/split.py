@@ -69,7 +69,8 @@ def _add_paths_to_lists(input_paths_list,
         target_mask_paths.append(target_mask_paths_for_slice)
       else:
         # Adds separate paths for each target mask
-        raise NotImplementedError()
+        for target_mask_path in target_mask_paths_for_slice:
+          target_mask_paths.append([target_mask_path])
     target_mask_paths_list.append(target_mask_paths)
 
 def setup_train_dev_split(FLAGS):
