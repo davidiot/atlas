@@ -6,12 +6,38 @@ import json
 from PIL import Image
 
 # counts: {(10, 10): 4088, (30, 30): 3228, (70, 70): 3049, (150, 150): 1313}
-BOX_SHAPES = [(10, 10), (30, 30), (70, 70), (150, 150)]
-BOX_LABELS = {(10, 10): 'S', (30, 30): 'M', (70, 70): 'L', (150, 150): 'XL'}
+BOX_SHAPES = [(12, 12), (32, 32), (72, 72), (150, 150)]
+BOX_LABELS = {(12, 12): 'S', (32, 32): 'M', (72, 72): 'L', (150, 150): 'XL'}
 
 
-# if the edges of the box are outside of the input image, shift it
+def box_width(box):
+    """ compute the width of a box
+
+    :param box: box coordinates in form (x1, y1, x2, y2)
+    :return: box width
+    """
+    return box[2] - box[0]
+
+
+def box_height(box):
+    """ compute the height of a box
+
+    :param box: box coordinates in form (x1, y1, x2, y2)
+    :return: box height
+    """
+    return box[3] - box[1]
+
+
 def shift_box(input_array, x1, y1, x2, y2):
+    """ if the edges of the box are outside of the original image, shift it
+
+    :param input_array: array of the original image
+    :param x1: box coordinate, first corner's x value
+    :param y1: box coordinate, first corner's y value
+    :param x2: box coordinate, second corner's x value
+    :param y2: box coordinate, second corner's y value
+    :return: shifted box coordinates
+    """
     if x1 < 0:
         diff = 0 - x1
         x1 += diff
@@ -28,22 +54,23 @@ def shift_box(input_array, x1, y1, x2, y2):
         diff = y2 - input_array.shape[1] + 1
         y1 -= diff
         y2 -= diff
-    assert(x1 >= 0)
-    assert(y1 >= 0)
-    assert(x2 <= input_array.shape[0] - 1)
-    assert(y2 <= input_array.shape[1] - 1)
+    assert (x1 >= 0)
+    assert (y1 >= 0)
+    assert (x2 <= input_array.shape[0] - 1)
+    assert (y2 <= input_array.shape[1] - 1)
     return int(x1), int(y1), int(x2), int(y2)
 
 
-def box_width(box):
-    return box[2] - box[0]
-
-
-def box_height(box):
-    return box[3] - box[1]
-
-
 def compute_bounding_box(slice_path, show_image=False):
+    """
+    Computes the canonical bounding box (a box with the smallest possible shape from
+    BOX_SHAPES that contains the entire mask), and the inner box (the smallest box of
+    any shape that contains the entire mask, with one pixel of padding on all sides)
+
+    :param slice_path: path to the mask slice image
+    :param show_image: show the canonical bounding box if true
+    :return: shape of canonical box, canonical box, inner box tuple
+    """
     input_image = Image.open(slice_path).convert("1")  # convert to black and white
     input_array = np.array(input_image)
     vertical_indices = np.argwhere(input_array.sum(axis=0))[:, 0]
@@ -80,9 +107,19 @@ def compute_bounding_box(slice_path, show_image=False):
     return output_box_shape, bbox, inner_box
 
 
-# Given an inner box (the smallest box containing the entire mask)
-# and a canonical box, generate random slices that still contain the outer box
 def augment_boxes(canonical_box, inner_box, slice_path, num_crops, show_image=False):
+    """
+    Given an inner box (the smallest box containing the entire mask) and a canonical box,
+    generate random crops with the same size as the canonical box that still contain the
+    entire inner box.
+
+    :param canonical_box: the canonical box used to train the first neural net
+    :param inner_box: the smallest box containing the entire mask
+    :param slice_path: path to the mask slice image
+    :param num_crops: how many crops to attempt to generate; this may produce duplicates
+    :param show_image: show the augmented boxes if true
+    :return: a tuple containing the canonical box and all augmented boxes
+    """
     input_image = Image.open(slice_path).convert("1")  # convert to black and white
     input_array = np.array(input_image)
     output = set([canonical_box])
@@ -107,8 +144,15 @@ def augment_boxes(canonical_box, inner_box, slice_path, num_crops, show_image=Fa
     return tuple(output)
 
 
-# Determines the canonical and augmented bounding boxes.
 def generate_boxes(FLAGS):
+    """ Determines the canonical and augmented bounding boxes.
+
+    Saves the canonical boxes in json files ending in -canonical-{SHAPE}.json
+    Saves the augmented boxes in json files ending in -augmented-{SHAPE}.json
+
+    :param FLAGS:
+    :return:
+    """
     prefix = os.path.join(FLAGS.data_dir, "ATLAS_R1.1")
     mask_slice_paths = glob.glob(os.path.join(prefix, "Site*/**/*/*LesionSmooth*/*.jpg"))
 
