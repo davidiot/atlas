@@ -34,7 +34,7 @@ tf.app.flags.DEFINE_integer("keep", None,
                             "all. These files are storage-consuming so should "
                             "not be kept in aggregate.")
 tf.app.flags.DEFINE_string("mode", "train",
-                           "Options: {train,eval}.")
+                           "Options: {train,eval,split,box}.")
 tf.app.flags.DEFINE_integer("print_every", 1,
                             "How many iterations to do per print.")
 tf.app.flags.DEFINE_integer("save_every", 500,
@@ -173,6 +173,11 @@ def main(_):
   module = __import__("atlas_model")
   model_class = getattr(module, FLAGS.model_name)
   atlas_model = model_class(FLAGS)
+
+  if FLAGS.mode == "split":
+      if not os.path.exists(FLAGS.train_dir):
+          os.makedirs(FLAGS.train_dir)
+      setup_train_dev_split(FLAGS)
 
   if FLAGS.mode == "train":
     if not os.path.exists(FLAGS.train_dir):
