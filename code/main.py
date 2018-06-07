@@ -62,6 +62,9 @@ tf.app.flags.DEFINE_boolean("use_fake_target_masks", False,
                             "Sets whether to use fake target masks or not.")
 tf.app.flags.DEFINE_boolean("use_volumetric", False,
                             "Sets whether to use volumetric data or not.")
+tf.app.flags.DEFINE_integer("num_crops", 100,
+                            "How many random crops to take when augmenting data."
+                            "Note that this may generate duplicate crops")
 
 # Split
 tf.app.flags.DEFINE_string("cv_type", "lpocv",
@@ -210,7 +213,7 @@ def main(_):
                                                         plot=True)
       logging.info(f"dev dice_coefficient: {dev_dice}")
   elif FLAGS.mode == "box":
-    bb.generate_canonical_boxes(FLAGS)
+    bb.generate_boxes(FLAGS)
 
 
 if __name__ == "__main__":
