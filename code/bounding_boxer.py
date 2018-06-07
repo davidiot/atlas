@@ -7,6 +7,7 @@ from PIL import Image
 
 # counts: {(10, 10): 4088, (30, 30): 3228, (70, 70): 3049, (150, 150): 1313}
 BOX_SHAPES = [(10, 10), (30, 30), (70, 70), (150, 150)]
+BOX_LABELS = {(10, 10): 'S', (30, 30): 'M', (70, 70): 'L', (150, 150): 'XL'}
 
 
 def compute_bounding_box(input_path, show_image=False):
@@ -29,14 +30,14 @@ def compute_bounding_box(input_path, show_image=False):
             output_box_shape = shape
             break
 
-    x_center = (x1 + x2) / 2
-    y_center = (y1 + y2) / 2
+    x_center = int((x1 + x2) / 2)
+    y_center = int((y1 + y2) / 2)
 
     # if the edges of the box are outside of the input image, shift it
-    output_x1 = x_center - output_box_shape[0] / 2
-    output_x2 = x_center + output_box_shape[0] / 2
-    output_y1 = y_center - output_box_shape[1] / 2
-    output_y2 = y_center + output_box_shape[1] / 2
+    output_x1 = int(x_center - output_box_shape[0] / 2)
+    output_x2 = int(x_center + output_box_shape[0] / 2)
+    output_y1 = int(y_center - output_box_shape[1] / 2)
+    output_y2 = int(y_center + output_box_shape[1] / 2)
     if output_x1 < 0:
         diff = 0 - output_x1
         output_x1 += diff
@@ -73,11 +74,13 @@ def generate_canonical_boxes(FLAGS):
     shape_counts = {shape: 0 for shape in BOX_SHAPES}
     for slice_path in mask_slice_paths:
         try:
-            shape, bbox = compute_bounding_box(slice_path, True)
+            shape, bbox = compute_bounding_box(slice_path)
             shape_counts[shape] += 1
-            # base_name = os.path.splitext(slice_path)[0]
-            # with open(base_name + "-canonical.json", "w") as fout:
-            #     json.dump(compute_bounding_box(slice_path, 3, True), fout)
+            base_name = os.path.splitext(slice_path)[0]
+            label = BOX_LABELS[shape]
+            with open(base_name + "-canonical-" + label + ".json", "w") as fout:
+                json.dump(bbox, fout)
         except IndexError:
-            pass
-    print(shape_counts)
+            pass  # There were no pixels in the mask.
+    for shape in shape_counts:
+        print("Generated ", shape_counts[shape], " boxes of shape ", shape, " (", BOX_LABELS[shape], ")")
