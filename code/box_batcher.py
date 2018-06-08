@@ -201,7 +201,6 @@ class BoxBatchGenerator():
                 regularized_mask = np.asarray(cropped_mask) / 255.0
                 target_mask = np.minimum(regularized_mask, 1.0)
 
-                # Image.resize expects (width, height) order
                 examples.append((
                     regularized_input,
                     target_mask,
