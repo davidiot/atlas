@@ -269,7 +269,7 @@ class ATLASModel(object):
         results = sess.run(output_feed, input_feed)
         return results["predicted_masks"]
 
-    def get_batch_generator(self, input_paths, target_mask_paths, num_samples=None):
+    def get_batch_generator(self, input_paths, target_mask_paths, num_samples=None, flip_images=True):
         return SliceBatchGenerator(input_paths,
                                    target_mask_paths,
                                    self.FLAGS.batch_size,

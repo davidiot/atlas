@@ -39,7 +39,6 @@ class BoxBatchGenerator():
                  input_path_lists,
                  target_mask_path_lists,
                  batch_size,
-                 FLAGS,
                  max_num_refill_batches=1000,
                  num_samples=None,
                  shape=(197, 233),
@@ -67,7 +66,6 @@ class BoxBatchGenerator():
         ignored and all masks are all 0s. This option might be useful to sanity
         check new models before training on the real dataset.
         """
-        assert(not FLAGS.use_volumetric)
         self._flip_images = flip_images
         self._input_paths = []
         self._boxes = []
