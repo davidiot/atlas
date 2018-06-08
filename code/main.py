@@ -9,7 +9,7 @@ from split import setup_train_dev_split
 
 # Relative path of the main directory
 MAIN_DIR = os.path.relpath(
-  os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Relative path of the data directory
 DEFAULT_DATA_DIR = os.path.join(MAIN_DIR, "data")
@@ -120,109 +120,109 @@ os.environ["CUDA_VISIBLE_DEVICES"] = str(FLAGS.gpu)
 
 
 def initialize_model(sess, model, train_dir, expect_exists=False):
-  """
-  Initializes the model from {train_dir}.
+    """
+    Initializes the model from {train_dir}.
 
-  Inputs:
-  - sess: A TensorFlow Session object.
-  - model: An ATLASModel object.
-  - train_dir: A Python str that represents the relative path to train dir
-    e.g. "../experiments/001".
-  - expect_exists: If True, throw an error if no checkpoint is found;
-    otherwise, initialize fresh model if no checkpoint is found.
-  """
-  ckpt = tf.train.get_checkpoint_state(train_dir)
-  v2_path = ckpt.model_checkpoint_path + ".index" if ckpt else ""
-  if (ckpt and (tf.gfile.Exists(ckpt.model_checkpoint_path)
-      or tf.gfile.Exists(v2_path))):
-    print(f"Reading model parameters from {ckpt.model_checkpoint_path}")
-    model.saver.restore(sess, ckpt.model_checkpoint_path)
-  else:
-    if expect_exists:
-      raise Exception(f"There is no saved checkpoint at {train_dir}")
+    Inputs:
+    - sess: A TensorFlow Session object.
+    - model: An ATLASModel object.
+    - train_dir: A Python str that represents the relative path to train dir
+      e.g. "../experiments/001".
+    - expect_exists: If True, throw an error if no checkpoint is found;
+      otherwise, initialize fresh model if no checkpoint is found.
+    """
+    ckpt = tf.train.get_checkpoint_state(train_dir)
+    v2_path = ckpt.model_checkpoint_path + ".index" if ckpt else ""
+    if (ckpt and (tf.gfile.Exists(ckpt.model_checkpoint_path)
+                  or tf.gfile.Exists(v2_path))):
+        print(f"Reading model parameters from {ckpt.model_checkpoint_path}")
+        model.saver.restore(sess, ckpt.model_checkpoint_path)
     else:
-      print(f"There is no saved checkpoint at {train_dir}. Creating model "
-            f"with fresh parameters.")
-      sess.run(tf.global_variables_initializer())
+        if expect_exists:
+            raise Exception(f"There is no saved checkpoint at {train_dir}")
+        else:
+            print(f"There is no saved checkpoint at {train_dir}. Creating model "
+                  f"with fresh parameters.")
+            sess.run(tf.global_variables_initializer())
 
 
 def main(_):
-  #############################################################################
-  # Configuration                                                             #
-  #############################################################################
-  # Checks for Python 3.6
-  if sys.version_info[0] != 3:
-    raise Exception(f"ERROR: You must use Python 3.6 but you are running "
-                    f"Python {sys.version_info[0]}")
+    #############################################################################
+    # Configuration                                                             #
+    #############################################################################
+    # Checks for Python 3.6
+    if sys.version_info[0] != 3:
+        raise Exception(f"ERROR: You must use Python 3.6 but you are running "
+                        f"Python {sys.version_info[0]}")
 
-  # Prints Tensorflow version
-  print(f"This code was developed and tested on TensorFlow 1.7.0. "
-        f"Your TensorFlow version: {tf.__version__}.")
+    # Prints Tensorflow version
+    print(f"This code was developed and tested on TensorFlow 1.7.0. "
+          f"Your TensorFlow version: {tf.__version__}.")
 
-  # Defines {FLAGS.train_dir}, maybe based on {FLAGS.experiment_dir}
-  if FLAGS.mode != 'box' and not FLAGS.experiment_name:
-    raise Exception("You need to specify an --experiment_name or --train_dir.")
-  FLAGS.train_dir = (FLAGS.train_dir
-                     or os.path.join(EXPERIMENTS_DIR, FLAGS.experiment_name))
+    # Defines {FLAGS.train_dir}, maybe based on {FLAGS.experiment_dir}
+    if FLAGS.mode != 'box' and not FLAGS.experiment_name:
+        raise Exception("You need to specify an --experiment_name or --train_dir.")
+    FLAGS.train_dir = (FLAGS.train_dir
+                       or os.path.join(EXPERIMENTS_DIR, FLAGS.experiment_name))
 
-  # Sets GPU settings
-  config = tf.ConfigProto()
-  config.gpu_options.allow_growth = True
+    # Sets GPU settings
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
 
-  #############################################################################
-  # Train/dev split and model definition                                      #
-  #############################################################################
-  # Initializes model from atlas_model.py
-  module = __import__("atlas_model")
-  model_class = getattr(module, FLAGS.model_name)
-  atlas_model = model_class(FLAGS)
+    #############################################################################
+    # Train/dev split and model definition                                      #
+    #############################################################################
+    # Initializes model from atlas_model.py
+    module = __import__("atlas_model")
+    model_class = getattr(module, FLAGS.model_name)
+    atlas_model = model_class(FLAGS)
 
-  if FLAGS.mode == "split":
-      if not os.path.exists(FLAGS.train_dir):
-          os.makedirs(FLAGS.train_dir)
-      setup_train_dev_split(FLAGS)
-
-  if FLAGS.mode == "train":
-    if not os.path.exists(FLAGS.train_dir):
-      os.makedirs(FLAGS.train_dir)
-
-    # Sets logging configuration
-    logging.basicConfig(filename=os.path.join(FLAGS.train_dir, "log.txt"),
-                        level=logging.INFO)
-
-    # Saves a record of flags as a .json file in {train_dir}
-    # TODO: read the existing flags.json file
-    with open(os.path.join(FLAGS.train_dir, "flags.json"), "w") as fout:
-      flags = {k: v.serialize() for k, v in FLAGS.__flags.items()}
-      json.dump(flags, fout)
-
-    with tf.Session(config=config) as sess:
-      # Loads the most recent model
-      initialize_model(sess, atlas_model, FLAGS.train_dir, expect_exists=False)
-
-      # Trains the model
-      atlas_model.train(sess, *setup_train_dev_split(FLAGS))
-  elif FLAGS.mode == "eval":
-    with tf.Session(config=config) as sess:
-      # Sets logging configuration
-      logging.basicConfig(level=logging.INFO)
-
-      # Loads the most recent model
-      initialize_model(sess, atlas_model, FLAGS.train_dir, expect_exists=True)
-
-      # Shows examples from the dev set
-      _, _, dev_input_paths, dev_target_mask_paths =\
+    if FLAGS.mode == "split":
+        if not os.path.exists(FLAGS.train_dir):
+            os.makedirs(FLAGS.train_dir)
         setup_train_dev_split(FLAGS)
-      dev_dice = atlas_model.calculate_dice_coefficient(sess,
-                                                        dev_input_paths,
-                                                        dev_target_mask_paths,
-                                                        "dev",
-                                                        num_samples=1000,
-                                                        plot=True)
-      logging.info(f"dev dice_coefficient: {dev_dice}")
-  elif FLAGS.mode == "box":
-    bb.generate_boxes(FLAGS)
+
+    if FLAGS.mode == "train":
+        if not os.path.exists(FLAGS.train_dir):
+            os.makedirs(FLAGS.train_dir)
+
+        # Sets logging configuration
+        logging.basicConfig(filename=os.path.join(FLAGS.train_dir, "log.txt"),
+                            level=logging.INFO)
+
+        # Saves a record of flags as a .json file in {train_dir}
+        # TODO: read the existing flags.json file
+        with open(os.path.join(FLAGS.train_dir, "flags.json"), "w") as fout:
+            flags = {k: v.serialize() for k, v in FLAGS.__flags.items()}
+            json.dump(flags, fout)
+
+        with tf.Session(config=config) as sess:
+            # Loads the most recent model
+            initialize_model(sess, atlas_model, FLAGS.train_dir, expect_exists=False)
+
+            # Trains the model
+            atlas_model.train(sess, *setup_train_dev_split(FLAGS))
+    elif FLAGS.mode == "eval":
+        with tf.Session(config=config) as sess:
+            # Sets logging configuration
+            logging.basicConfig(level=logging.INFO)
+
+            # Loads the most recent model
+            initialize_model(sess, atlas_model, FLAGS.train_dir, expect_exists=True)
+
+            # Shows examples from the dev set
+            _, _, dev_input_paths, dev_target_mask_paths = \
+                setup_train_dev_split(FLAGS)
+            dev_dice = atlas_model.calculate_dice_coefficient(sess,
+                                                              dev_input_paths,
+                                                              dev_target_mask_paths,
+                                                              "dev",
+                                                              num_samples=1000,
+                                                              plot=True)
+            logging.info(f"dev dice_coefficient: {dev_dice}")
+    elif FLAGS.mode == "box":
+        bb.generate_boxes(FLAGS)
 
 
 if __name__ == "__main__":
-  tf.app.run()
+    tf.app.run()
