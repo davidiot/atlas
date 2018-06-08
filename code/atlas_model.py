@@ -276,6 +276,14 @@ class ATLASModel(object):
     results = sess.run(output_feed, input_feed)
     return results["predicted_masks"]
 
+  def get_batch_generator(self, input_paths, target_mask_paths, num_samples=None):
+    return SliceBatchGenerator(input_paths,
+                               target_mask_paths,
+                               self.FLAGS.batch_size,
+                               num_samples=num_samples,
+                               shape=(self.FLAGS.slice_height,
+                                      self.FLAGS.slice_width),
+                               use_fake_target_masks=self.FLAGS.use_fake_target_masks)
 
   def calculate_loss(self,
                      sess,
@@ -308,13 +316,7 @@ class ATLASModel(object):
 
     loss_per_batch, batch_sizes = [], []
 
-    sbg = SliceBatchGenerator(input_paths,
-                              target_mask_paths,
-                              self.FLAGS.batch_size,
-                              num_samples=num_samples,
-                              shape=(self.FLAGS.slice_height,
-                                     self.FLAGS.slice_width),
-                              use_fake_target_masks=self.FLAGS.use_fake_target_masks)
+    sbg = self.get_batch_generator(input_paths, target_mask_paths, num_samples=None)
     # Iterates over batches
     for batch in sbg.get_batch():
       # Gets loss for this batch
@@ -369,12 +371,8 @@ class ATLASModel(object):
     dice_coefficient_total = 0.
     num_examples = 0
 
-    sbg = SliceBatchGenerator(input_paths,
-                              target_mask_paths,
-                              self.FLAGS.batch_size,
-                              shape=(self.FLAGS.slice_height,
-                                     self.FLAGS.slice_width),
-                              use_fake_target_masks=self.FLAGS.use_fake_target_masks)
+    sbg = self.get_batch_generator(input_paths, target_mask_paths)
+
     for batch in sbg.get_batch():
       predicted_masks = self.get_predicted_masks_for_batch(sess, batch)
 
@@ -454,12 +452,8 @@ class ATLASModel(object):
       epoch += 1
 
       # Loops over batches
-      sbg = SliceBatchGenerator(train_input_paths,
-                                train_target_mask_paths,
-                                self.FLAGS.batch_size,
-                                shape=(self.FLAGS.slice_height,
-                                       self.FLAGS.slice_width),
-                                use_fake_target_masks=self.FLAGS.use_fake_target_masks)
+      sbg = self.get_batch_generator(train_input_paths, train_target_mask_paths)
+
       num_epochs_str = str(num_epochs) if num_epochs != None else "indefinite"
       for batch in tqdm(sbg.get_batch(),
                         desc=f"Epoch {epoch}/{num_epochs_str}",
