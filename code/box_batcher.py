@@ -44,7 +44,8 @@ class BoxBatchGenerator():
                  num_samples=None,
                  shape=(197, 233),
                  shuffle=True,
-                 use_fake_target_masks=False):
+                 use_fake_target_masks=False,
+                 flip_images=False):
         """
         Initalizes a BoxBatchGenerator
         :param input_path_lists: A list of lists of Python strs that represent paths
@@ -67,6 +68,7 @@ class BoxBatchGenerator():
         check new models before training on the real dataset.
         """
         assert(not FLAGS.use_volumetric)
+        self._flip_images = flip_images
         self._input_paths = []
         self._boxes = []
         self._target_mask_paths = []
@@ -83,13 +85,15 @@ class BoxBatchGenerator():
                 try:
                     with open(base_name + "-augmented-" + label + ".json") as f:
                         boxes = json.read(f)
-                        self._input_paths += [input_path for _ in boxes]
-                        self._boxes += boxes
-                        self._target_mask_paths += [mask_path for _ in boxes]
+                        for box in boxes:
+                            for _ in range(2 if self._flip_images else 1):  # odds correspond to flipped images
+                            self._boxes += box
+                            self._input_paths += input_path
+                            self._target_mask_paths += mask_path
                 except FileNotFoundError:
                     pass
-        assert(len(self._boxes) == len(self._input_paths))
-        assert(len(self._boxes) == len(self._target_mask_paths))
+
+        assert(len(self._boxes) == len(self._input_paths) == len(self._target_mask_paths))
         print("loaded", len(self._boxes), "examples into a BoxBatchGenerator.")
 
         self._batch_size = batch_size
@@ -169,16 +173,18 @@ class BoxBatchGenerator():
             self._boxes[path_idx] for path_idx in path_indices]
         target_mask_paths = [
             self._target_mask_paths[path_idx] for path_idx in path_indices]
-        assert(len(boxes) == len(input_paths))
-        assert (len(boxes) == len(target_mask_paths))
 
-        zipped_path_lists = zip(input_paths, boxes, target_mask_paths)
+        assert(len(boxes) == len(input_paths) == len(target_mask_paths))
+
+        zipped_path_lists = zip(path_indices, input_paths, boxes, target_mask_paths)
 
         # Updates self._pointer for the next call to {self.refill_batches}
         self._pointer += self._max_num_refill_batches
 
-        for input_path, box, target_mask_path in zipped_path_lists:
+        for path_index, input_path, box, target_mask_path in zipped_path_lists:
             cropped_input = Image.open(input_path).convert("L").crop(box)
+            if self._flip_images and path_index % 2 == 1:
+                cropped_input = cropped_input.transpose(Image.FLIP_LEFT_RIGHT)
             regularized_input = np.asarray(cropped_input) / 255.0
             if self._use_fake_target_masks:
                 examples.append((
@@ -190,6 +196,8 @@ class BoxBatchGenerator():
                 ))
             else:
                 cropped_mask = Image.open(target_mask_path).convert("L").crop(box)
+                if self._flip_images and path_index % 2 == 1:
+                    cropped_mask = cropped_mask.transpose(Image.FLIP_LEFT_RIGHT)
                 regularized_mask = np.asarray(cropped_mask) / 255.0
                 target_mask = np.minimum(regularized_mask, 1.0)
 
