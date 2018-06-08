@@ -370,12 +370,10 @@ class ATLASModel(object):
 
             zipped_masks = zip(predicted_masks,
                                batch.target_masks_batch,
-                               batch.input_paths_batch,
-                               batch.target_mask_path_lists_batch)
+                               batch.input_paths_batch)
             for idx, (predicted_mask,
                       target_mask,
-                      input_path,
-                      target_mask_path_list) in enumerate(zipped_masks):
+                      input_path) in enumerate(zipped_masks):
                 dice_coefficient = utils.dice_coefficient(predicted_mask, target_mask)
                 if dice_coefficient >= 0.0:
                     dice_coefficient_total += dice_coefficient
