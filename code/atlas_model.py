@@ -310,7 +310,7 @@ class ATLASModel(object):
 
         loss_per_batch, batch_sizes = [], []
 
-        sbg = self.get_batch_generator(input_paths, target_mask_paths, num_samples=None)
+        sbg = self.get_batch_generator(input_paths, target_mask_paths, num_samples=num_samples)
         # Iterates over batches
         for batch in sbg.get_batch():
             # Gets loss for this batch

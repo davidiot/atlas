@@ -185,7 +185,7 @@ def setup_train_dev_split(FLAGS):
   if FLAGS.cv_type == "loocv":
     FLAGS.p = 1
   elif FLAGS.p == None:
-    FLAGS.p = math.floor(0.3 * n)
+    FLAGS.p = math.floor(0.1 * n)
   # else: it's been set manually
 
   train_input_paths = []
