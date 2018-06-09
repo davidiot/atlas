@@ -402,7 +402,11 @@ class ATLASModel(object):
             if num_samples != None and num_examples >= num_samples:
                 break
 
-        dice_coefficient_mean = dice_coefficient_total / num_examples
+        try:
+            dice_coefficient_mean = dice_coefficient_total / num_examples
+        except ZeroDivisionError:
+            dice_coefficient_mean = 0
+            logging.info(f"No valid examples found when evaluating.")
 
         toc = time.time()
         logging.info(f"Calculating dice coefficient took {toc-tic} sec.")
