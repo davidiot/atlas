@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 import utils
 from data_batcher import SliceBatchGenerator
-from modules import ConvEncoder, DeconvDecoder, UNet
+from modules import *
 from box_batcher import BoxBatchGenerator
 
 
@@ -554,8 +554,7 @@ class ZeroATLASModel(ATLASModel):
 class UNetATLASModel(ATLASModel):
     def __init__(self, FLAGS):
         """
-        Initializes the U-Net ATLAS model, which predicts 0 for the entire mask
-        no matter what, which performs well when --use_fake_target_masks.
+        Initializes the U-Net ATLAS model, which uses a UNet.
 
         Inputs:
         - FLAGS: A _FlagValuesWrapper object passed in from main.py.
@@ -577,7 +576,7 @@ class UNetATLASModel(ATLASModel):
                                           tf.uint8,
                                           name="predicted_masks")
 
-class BoxAtlasModel(ATLASModel):
+class BoxATLASModel(ATLASModel):
     def __init__(self, FLAGS):
         """
         Initializes the BoxAtlasModel, which takes bounding boxes as inputs
@@ -600,7 +599,7 @@ class BoxAtlasModel(ATLASModel):
                                  flip_images=flip_images)
 
 
-class ZeroBoxAtlasModel(BoxAtlasModel):
+class ZeroBoxATLASModel(BoxATLASModel):
     def __init__(self, FLAGS):
         """
         Initializes the Zero ATLAS model, which predicts 0 for the entire mask
@@ -621,6 +620,31 @@ class ZeroBoxAtlasModel(BoxAtlasModel):
                             shape=())
         self.logits_op = tf.ones(shape=[self.FLAGS.batch_size] + self.input_dims,
                                  dtype=tf.float32) * c
+        self.predicted_mask_probs_op = tf.sigmoid(self.logits_op,
+                                                  name="predicted_mask_probs")
+        self.predicted_masks_op = tf.cast(self.predicted_mask_probs_op > 0.5,
+                                          tf.uint8,
+                                          name="predicted_masks")
+
+
+class UNetBoxATLASModel(BoxATLASModel):
+    def __init__(self, FLAGS):
+        """
+        Initializes a UNet model using boxes as inputs
+
+        :param FLAGS: A _FlagValuesWrapper object passed in from main.py.
+        """
+        super().__init__(FLAGS)
+
+    def build_graph(self):
+        assert (self.input_dims == self.inputs_op.get_shape().as_list()[1:])
+        unet = UNet(input_shape=self.input_dims,
+                    keep_prob=self.keep_prob,
+                    output_shape=self.input_dims,
+                    scope_name="unet")
+        self.logits_op = tf.squeeze(
+            unet.build_graph(tf.expand_dims(self.inputs_op, 3)), axis=3)
+
         self.predicted_mask_probs_op = tf.sigmoid(self.logits_op,
                                                   name="predicted_mask_probs")
         self.predicted_masks_op = tf.cast(self.predicted_mask_probs_op > 0.5,
