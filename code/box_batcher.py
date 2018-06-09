@@ -189,6 +189,7 @@ class BoxBatchGenerator():
             if self._flip_images and path_index % 2 == 1:
                 cropped_input = cropped_input.transpose(Image.FLIP_LEFT_RIGHT)
             regularized_input = np.asarray(cropped_input) / 255.0
+            assert (regularized_input.shape == self._shape)
             if self._use_fake_target_masks:
                 examples.append((
                     regularized_input,
@@ -202,6 +203,7 @@ class BoxBatchGenerator():
                 if self._flip_images and path_index % 2 == 1:
                     cropped_mask = cropped_mask.transpose(Image.FLIP_LEFT_RIGHT)
                 regularized_mask = np.asarray(cropped_mask) / 255.0
+                assert(regularized_mask.shape == self._shape)
                 target_mask = np.minimum(regularized_mask, 1.0)
 
                 examples.append((

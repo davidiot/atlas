@@ -2,6 +2,7 @@ import numpy as np
 import glob
 import os
 import json
+import pdb
 
 from PIL import Image
 
@@ -190,6 +191,8 @@ def generate_additional_examples(shape, slice_path, num_examples, show_image=Fal
 def generate_boxes(FLAGS):
     """ Determines the canonical and augmented bounding boxes.
 
+    Wipes out preexisting boxes.
+
     Saves the canonical boxes in json files ending in -canonical-{SHAPE}.json
     Saves the augmented boxes in json files ending in -augmented-{SHAPE}.json
 
@@ -197,6 +200,9 @@ def generate_boxes(FLAGS):
     :return:
     """
     prefix = os.path.join(FLAGS.data_dir, "ATLAS_R1.1")
+    old_json_files = glob.glob(os.path.join(prefix, "Site*/**/*/*LesionSmooth*/*.json"))
+    for file in old_json_files:
+        os.remove(file)
     mask_slice_paths = glob.glob(os.path.join(prefix, "Site*/**/*/*LesionSmooth*/*.jpg"))
 
     shape_counts = {shape: 0 for shape in BOX_LABELS}
