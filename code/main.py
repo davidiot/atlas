@@ -65,7 +65,7 @@ tf.app.flags.DEFINE_boolean("use_volumetric", False,
 tf.app.flags.DEFINE_integer("num_crops", 120,
                             "How many random crops to take when augmenting data."
                             "Note that this may generate duplicate crops.")
-tf.app.flags.DEFINE_integer("num_additional_samples", 8,
+tf.app.flags.DEFINE_integer("num_additional_samples", 5,
                             "How many additional samples to take when augmenting data."
                             "Note that this may generate duplicate crops.")
 
