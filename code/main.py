@@ -42,6 +42,9 @@ tf.app.flags.DEFINE_integer("save_every", 500,
 tf.app.flags.DEFINE_integer("summary_every", 500,
                             "How many iterations to do per TensorBoard "
                             "summary write.")
+tf.app.flags.DEFINE_integer("base_size", None,
+                            "If set, controls the number of parameters in the "
+                            "UNets used to train the box predictor models.")
 
 # TensorBoard
 tf.app.flags.DEFINE_integer("num_summary_images", 64,

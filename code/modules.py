@@ -129,14 +129,15 @@ class DeconvDecoder(NeuralNetwork):
 
 
 class UNetS(NeuralNetwork):
-    def __init__(self, input_shape, keep_prob, output_shape, scope_name="unet_s"):
+    def __init__(self, input_shape, keep_prob, output_shape, base_size, scope_name="unet_s"):
         self.input_shape = input_shape
         self.keep_prob = keep_prob
         self.output_shape = output_shape
         self.scope_name = scope_name
+        self.base_size = base_size
 
     def build_graph(self, input):
-        base = 32
+        base = 32 if self.base_size is None else self.base_size
         with tf.variable_scope(self.scope_name):
             # Let input_shape = (x, y)
             # Convolution
@@ -173,14 +174,15 @@ class UNetS(NeuralNetwork):
 
 
 class UNetM(NeuralNetwork):
-    def __init__(self, input_shape, keep_prob, output_shape, scope_name="unet_m"):
+    def __init__(self, input_shape, keep_prob, output_shape, base_size, scope_name="unet_m"):
         self.input_shape = input_shape
         self.keep_prob = keep_prob
         self.output_shape = output_shape
         self.scope_name = scope_name
+        self.base_size = base_size
 
     def build_graph(self, input):
-        base = 16
+        base = 16 if self.base_size is None else self.base_size
         with tf.variable_scope(self.scope_name):
             # Let input_shape = (x, y)
             # Convolution
@@ -235,14 +237,15 @@ class UNetM(NeuralNetwork):
 
 
 class UNetL(NeuralNetwork):
-    def __init__(self, input_shape, keep_prob, output_shape, scope_name="unet_l"):
+    def __init__(self, input_shape, keep_prob, output_shape, base_size, scope_name="unet_l"):
         self.input_shape = input_shape
         self.keep_prob = keep_prob
         self.output_shape = output_shape
         self.scope_name = scope_name
+        self.base_size = base_size
 
     def build_graph(self, input):
-        base = 8
+        base = 8 if self.base_size is None else self.base_size
         with tf.variable_scope(self.scope_name):
             # Let input_shape = (x, y)
             # Convolution
@@ -316,14 +319,15 @@ class UNetL(NeuralNetwork):
 
 
 class UNetXL(NeuralNetwork):
-    def __init__(self, input_shape, keep_prob, output_shape, scope_name="unet_xl"):
+    def __init__(self, input_shape, keep_prob, output_shape, base_size, scope_name="unet_xl"):
         self.input_shape = input_shape
         self.keep_prob = keep_prob
         self.output_shape = output_shape
         self.scope_name = scope_name
+        self.base_size = base_size
 
     def build_graph(self, input):
-        base = 4
+        base = 4 if self.base_size is None else self.base_size
         with tf.variable_scope(self.scope_name):
             # Let input_shape = (x, y)
             # Convolution

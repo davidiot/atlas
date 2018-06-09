@@ -638,9 +638,10 @@ class SmallUNetBoxATLASModel(BoxATLASModel):
     def build_graph(self):
         assert (self.input_dims == self.inputs_op.get_shape().as_list()[1:])
         unet = UNetS(input_shape=self.input_dims,
-                    keep_prob=self.keep_prob,
-                    output_shape=self.input_dims,
-                    scope_name="unet_s")
+                     keep_prob=self.keep_prob,
+                     output_shape=self.input_dims,
+                     base_size=self.FLAGS.base_size,
+                     scope_name="unet_s")
         self.logits_op = tf.squeeze(
             unet.build_graph(tf.expand_dims(self.inputs_op, 3)), axis=3)
 
@@ -663,9 +664,10 @@ class MediumUNetBoxATLASModel(BoxATLASModel):
     def build_graph(self):
         assert (self.input_dims == self.inputs_op.get_shape().as_list()[1:])
         unet = UNetM(input_shape=self.input_dims,
-                    keep_prob=self.keep_prob,
-                    output_shape=self.input_dims,
-                    scope_name="unet_m")
+                     keep_prob=self.keep_prob,
+                     output_shape=self.input_dims,
+                     base_size=self.FLAGS.base_size,
+                     scope_name="unet_m")
         self.logits_op = tf.squeeze(
             unet.build_graph(tf.expand_dims(self.inputs_op, 3)), axis=3)
 
@@ -688,9 +690,10 @@ class LargeUNetBoxATLASModel(BoxATLASModel):
     def build_graph(self):
         assert (self.input_dims == self.inputs_op.get_shape().as_list()[1:])
         unet = UNetL(input_shape=self.input_dims,
-                    keep_prob=self.keep_prob,
-                    output_shape=self.input_dims,
-                    scope_name="unet_l")
+                     keep_prob=self.keep_prob,
+                     output_shape=self.input_dims,
+                     base_size=self.FLAGS.base_size,
+                     scope_name="unet_l")
         self.logits_op = tf.squeeze(
             unet.build_graph(tf.expand_dims(self.inputs_op, 3)), axis=3)
 
@@ -712,9 +715,10 @@ class ExtraLargeUNetBoxATLASModel(BoxATLASModel):
     def build_graph(self):
         assert (self.input_dims == self.inputs_op.get_shape().as_list()[1:])
         unet = UNetXL(input_shape=self.input_dims,
-                    keep_prob=self.keep_prob,
-                    output_shape=self.input_dims,
-                    scope_name="unet_xl")
+                     keep_prob=self.keep_prob,
+                     output_shape=self.input_dims,
+                     base_size=self.FLAGS.base_size,
+                     scope_name="unet_xl")
         self.logits_op = tf.squeeze(
             unet.build_graph(tf.expand_dims(self.inputs_op, 3)), axis=3)
 
