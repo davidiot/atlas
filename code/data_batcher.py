@@ -1,5 +1,9 @@
 import numpy as np
 import random
+import glob
+import os
+import json
+import pdb
 
 from PIL import Image
 
@@ -202,3 +206,132 @@ class SliceBatchGenerator(object):
         """
         # The -1 then +1 accounts for the remainder batch.
         return int((len(self._input_path_lists) - 1) / self._batch_size) + 1
+
+
+class BoundingBatchGenerator(SliceBatchGenerator):
+    def __init__(self,
+                 input_path_lists,
+                 target_mask_path_lists,
+                 batch_size,
+                 max_num_refill_batches=1000,
+                 num_samples=None,
+                 shape=(197, 233),
+                 shuffle=False,
+                 use_fake_target_masks=False):
+        """
+        Initializes a BoundingBatchGenerator, which is like a SliceBatchGenerator
+        except it is meant to help generate bounding boxes.
+
+        Inputs:
+        - input_path_lists: A list of lists of Python strs that represent paths
+          to input image files.
+        - target_mask_path_lists: A list of list of lists of Python strs that
+          represent paths to target mask files.
+        - batch_size: A Python int that represents the batch size.
+        - max_num_refill_batches: A Python int that represents the maximum number
+          of batches of slices to refill at a time.
+        - num_samples: A Python int or None. If None, then uses the entire
+          {input_path_lists} and {target_mask_path_lists}.
+        - shape: A Python tuple of ints that represents the shape to resize the
+          slice as (height, width).
+        - shuffle: A Python bool that represents whether to shuffle the batches
+          from the original order specified by {input_path_lists} and
+          {target_mask_path_lists}.
+        - use_fake_target_masks: A Python bool that represents whether to use
+          fake target masks or not. If True, then {target_mask_path_lists} is
+          ignored and all masks are all 0s. This option might be useful to sanity
+          check new models before training on the real dataset.
+        """
+        super().__init__(input_path_lists,
+                         target_mask_path_lists,
+                         batch_size,
+                         max_num_refill_batches,
+                         num_samples,
+                         shape,
+                         shuffle,
+                         use_fake_target_masks)
+
+    def refill_batches(self):
+        """
+        Refills {self._batches}.
+        """
+        if self._pointer >= len(self._input_path_lists):
+            return
+
+        examples = []  # A Python list of (input, target_mask) tuples
+
+        # {start_idx} and {end_idx} are values like 2000 and 3000
+        # If shuffle=True, then {self._order} is a list like [56, 720, 12, ...]
+        # {path_indices} is the sublist of {self._order} that represents the
+        #   current batch; in other words, the current batch of inputs will be:
+        #   [self._input_path_lists[path_indices[0]],
+        #    self._input_path_lists[path_indices[1]],
+        #    self._input_path_lists[path_indices[2]],
+        #    ...]
+        # {input_path_lists} and {target_mask_path_lists} are lists of paths corresponding
+        #   to the indices given by {path_indices}
+        start_idx, end_idx = self._pointer, self._pointer + self._max_num_refill_batches
+        path_indices = self._order[start_idx:end_idx]
+        input_path_lists = [
+            self._input_path_lists[path_idx] for path_idx in path_indices]
+        target_mask_path_lists = [
+            self._target_mask_path_lists[path_idx] for path_idx in path_indices]
+        zipped_path_lists = zip(input_path_lists, target_mask_path_lists)
+
+        # Updates self._pointer for the next call to {self.refill_batches}
+        self._pointer += self._max_num_refill_batches
+
+        for input_path_list, target_mask_path_list in zipped_path_lists:
+            if self._use_fake_target_masks:
+                input = Image.open(input_path_list[0]).convert("L")
+                # Image.resize expects (width, height) order
+                examples.append((
+                    # np.asarray(input.resize(self._shape[::-1], Image.NEAREST)),
+                    np.asarray(input.crop((0, 0) + self._shape[::-1])),
+                    np.zeros(self._shape),
+                    input_path_list[0],
+                    "fake_target_mask"
+                ))
+            else:
+                # Assumes {input_path_list} is a list with length 1;
+                # opens input, resizes it, converts to a numpy array
+                input = Image.open(input_path_list[0]).convert("L")
+                # input = input.resize(self._shape[::-1], Image.NEAREST)
+                input = input.crop((0, 0) + self._shape[::-1])
+                input = np.asarray(input) / 255.0
+
+                # Assumes {target_mask_path_list} is a list of lists, where the outer
+                # list has length 1 and the inner list has length >= 1;
+                # Merges target masks if list contains more than one path
+                target_mask_list = target_mask_path_list[0]
+                box_masks = [np.zeros(self._shape)]
+                for target_mask_path in target_mask_list:
+                    base_name = os.path.splitext(target_mask_path)[0]
+                    canonical_boxes_jsons = glob.glob(base_name + "-canonical-*.json")
+                    for canonical_boxes_json in canonical_boxes_jsons: # should be length 1
+                        with open(canonical_boxes_json) as f:
+                            bbox = tuple(json.load(f))
+                        box_mask = np.zeros(self._shape)
+                        (x1, y1, x2, y2) = bbox
+                        box_mask[y1:y2, x1:x2] = 1
+                        box_masks.append(box_mask)
+                target_mask = np.minimum(np.sum(box_masks, axis=0), 1.0)
+
+                # Image.resize expects (width, height) order
+                examples.append((
+                    input,
+                    target_mask,
+                    input_path_list[0],
+                    target_mask_path_list[0]
+                ))
+            if len(examples) >= self._batch_size * self._max_num_refill_batches:
+                break
+
+        for batch_start_idx in range(0, len(examples), self._batch_size):
+            (inputs_batch, target_masks_batch, input_paths_batch,
+             target_mask_path_lists_batch) = \
+                zip(*examples[batch_start_idx:batch_start_idx + self._batch_size])
+            self._batches.append((np.asarray(inputs_batch),
+                                  np.asarray(target_masks_batch),
+                                  input_paths_batch,
+                                  target_mask_path_lists_batch))
