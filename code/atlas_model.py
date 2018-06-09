@@ -5,11 +5,12 @@ import os
 import sys
 import tensorflow as tf
 import time
+import pdb
 
 from tqdm import tqdm
 
 import utils
-from data_batcher import SliceBatchGenerator
+from data_batcher import SliceBatchGenerator, BoundingBatchGenerator
 from modules import *
 from box_batcher import BoxBatchGenerator
 
@@ -551,33 +552,6 @@ class ZeroATLASModel(ATLASModel):
                                           name="predicted_masks")
 
 
-class UNetATLASModel(ATLASModel):
-    def __init__(self, FLAGS):
-        """
-        Initializes the U-Net ATLAS model, which uses a UNet.
-
-        Inputs:
-        - FLAGS: A _FlagValuesWrapper object passed in from main.py.
-        """
-        super().__init__(FLAGS)
-
-    def build_graph(self):
-        assert (self.input_dims == self.inputs_op.get_shape().as_list()[1:])
-        unet = UNetL(input_shape=self.input_dims,
-                     keep_prob=self.keep_prob,
-                     output_shape=self.input_dims,
-                     base_size=self.FLAGS.base_size,
-                     scope_name="unet_l")
-        self.logits_op = tf.squeeze(
-            unet.build_graph(tf.expand_dims(self.inputs_op, 3)), axis=3)
-
-        self.predicted_mask_probs_op = tf.sigmoid(self.logits_op,
-                                                  name="predicted_mask_probs")
-        self.predicted_masks_op = tf.cast(self.predicted_mask_probs_op > 0.5,
-                                          tf.uint8,
-                                          name="predicted_masks")
-
-
 class MediumUNetATLASModel(ATLASModel):
     def __init__(self, FLAGS):
         """
@@ -604,6 +578,54 @@ class MediumUNetATLASModel(ATLASModel):
                                           tf.uint8,
                                           name="predicted_masks")
 
+
+class BoundingATLASModel(ATLASModel):
+    def __init__(self, FLAGS):
+        """
+        Initializes the BoundingAtlasModel, which takes entire slices
+        as input but outputs bounding boxes
+
+        :param FLAGS: A _FlagValuesWrapper object passed in from main.py.
+        """
+        super().__init__(FLAGS)
+
+    def get_batch_generator(self, input_paths, target_mask_paths, num_samples=None, flip_images=True):
+        return BoundingBatchGenerator(
+            input_paths,
+            target_mask_paths,
+            self.FLAGS.batch_size,
+            num_samples=num_samples,
+            shape=(self.FLAGS.slice_height,
+                   self.FLAGS.slice_width),
+            use_fake_target_masks=self.FLAGS.use_fake_target_masks)
+
+    def build_graph(self):
+        """
+        Sets {self.logits_op} to a matrix that matches the bounding boxes
+        """
+        assert (self.input_dims == self.inputs_op.get_shape().as_list()[1:])
+        encoder = BoundingConvEncoder(input_shape=self.input_dims,
+                                      keep_prob=self.keep_prob,
+                                      scope_name="bounding_encoder")
+        hidden_op = encoder.build_graph(tf.expand_dims(self.inputs_op, 3))
+        logits_op = tf.zeros(
+            shape=[self.FLAGS.batch_size] + self.input_dims,
+            dtype=tf.float32)
+        pdb.set_trace()
+        # Only squeezes the last dimension (do not squeeze the batch dimension)
+        self.logits_op = hidden_op
+        self.predicted_mask_probs_op = tf.sigmoid(self.logits_op,
+                                                  name="predicted_mask_probs")
+        self.predicted_masks_op = tf.cast(self.predicted_mask_probs_op > 0.5,
+                                          dtype=tf.uint8,
+                                          name="predicted_masks")
+        self.logits_op = tf.ones(shape=[self.FLAGS.batch_size] + self.input_dims,
+                                 dtype=tf.float32) * c
+        self.predicted_mask_probs_op = tf.sigmoid(self.logits_op,
+                                                  name="predicted_mask_probs")
+        self.predicted_masks_op = tf.cast(self.predicted_mask_probs_op > 0.5,
+                                          tf.uint8,
+                                          name="predicted_masks")
 
 class BoxATLASModel(ATLASModel):
     def __init__(self, FLAGS):

@@ -106,6 +106,30 @@ class ConvEncoder(NeuralNetwork):
         return out
 
 
+class BoundingConvEncoder(NeuralNetwork):
+    def __init__(self, input_shape, keep_prob, scope_name="encoder"):
+        self.input_shape = input_shape
+        self.keep_prob = keep_prob
+        self.scope_name = scope_name
+
+    def build_graph(self, input):
+        with tf.variable_scope(self.scope_name):
+            conv1 = self.conv2d_relu(input, filter_shape=[3, 3, 1, 8], scope_name="conv1")  # (232, 196, 8)
+            pool1 = self.maxpool2d(conv1, scope_name="pool1")  # (116, 98, 8)
+            drop1 = self.dropout(pool1, keep_prob=self.keep_prob, scope_name="drop1")
+            conv2 = self.conv2d_relu(drop1, filter_shape=[5, 5, 8, 16], scope_name="conv2")  # (116, 98, 16)
+            pool2 = self.maxpool2d(conv2, scope_name="pool2")  # (58, 49, 16)
+            drop2 = self.dropout(pool2, keep_prob=self.keep_prob, scope_name="drop2")
+            drop2 = tf.reshape(drop2, shape=[-1, 58 * 49 * 16])  # (45472,)
+            fc1 = self.fc(drop2, output_shape=1024, scope_name="fc1")
+            drop3 = self.dropout(fc1, keep_prob=self.keep_prob, scope_name="drop3")
+            fc2 = self.fc(drop3, output_shape=256, scope_name="fc2")
+            drop4 = self.dropout(fc2, keep_prob=self.keep_prob, scope_name="drop4")
+            fc3 = self.fc(drop4, output_shape=12, scope_name="fc3")
+            out = tf.identity(fc3, name="out")
+        return out
+
+
 class DeconvDecoder(NeuralNetwork):
     def __init__(self, keep_prob, output_shape, scope_name="decoder"):
         self.keep_prob = keep_prob
