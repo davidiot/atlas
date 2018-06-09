@@ -564,9 +564,10 @@ class UNetATLASModel(ATLASModel):
     def build_graph(self):
         assert (self.input_dims == self.inputs_op.get_shape().as_list()[1:])
         unet = UNetL(input_shape=self.input_dims,
-                    keep_prob=self.keep_prob,
-                    output_shape=self.input_dims,
-                    scope_name="unet_l")
+                     keep_prob=self.keep_prob,
+                     output_shape=self.input_dims,
+                     base_size=self.FLAGS.base_size,
+                     scope_name="unet_l")
         self.logits_op = tf.squeeze(
             unet.build_graph(tf.expand_dims(self.inputs_op, 3)), axis=3)
 
@@ -575,6 +576,34 @@ class UNetATLASModel(ATLASModel):
         self.predicted_masks_op = tf.cast(self.predicted_mask_probs_op > 0.5,
                                           tf.uint8,
                                           name="predicted_masks")
+
+
+class MediumUNetATLASModel(ATLASModel):
+    def __init__(self, FLAGS):
+        """
+        Initializes the Medium U-Net ATLAS model, which uses a Medium UNet.
+
+        Inputs:
+        - FLAGS: A _FlagValuesWrapper object passed in from main.py.
+        """
+        super().__init__(FLAGS)
+
+    def build_graph(self):
+        assert (self.input_dims == self.inputs_op.get_shape().as_list()[1:])
+        unet = UNetM(input_shape=self.input_dims,
+                     keep_prob=self.keep_prob,
+                     output_shape=self.input_dims,
+                     base_size=self.FLAGS.base_size,
+                     scope_name="unet_m")
+        self.logits_op = tf.squeeze(
+            unet.build_graph(tf.expand_dims(self.inputs_op, 3)), axis=3)
+
+        self.predicted_mask_probs_op = tf.sigmoid(self.logits_op,
+                                                  name="predicted_mask_probs")
+        self.predicted_masks_op = tf.cast(self.predicted_mask_probs_op > 0.5,
+                                          tf.uint8,
+                                          name="predicted_masks")
+
 
 class BoxATLASModel(ATLASModel):
     def __init__(self, FLAGS):
