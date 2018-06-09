@@ -262,7 +262,7 @@ def setup_train_dev_split(FLAGS):
     if FLAGS.input_regex == None:
       # Bins the first p into the dev set; bins the others into the training set
       for idx, slice_path in enumerate(slice_paths):
-        if idx >= FLAGS.p:
+        if idx >= n - FLAGS.p:
           input_paths = dev_input_paths
 
         if FLAGS.use_volumetric:
