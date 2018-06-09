@@ -136,7 +136,7 @@ class UNet(NeuralNetwork):
         self.scope_name = scope_name
 
     def build_graph(self, input):
-        base = 32
+        base = 20
         with tf.variable_scope(self.scope_name):
             # Let input_shape = (x, y)
             # Convolution
