@@ -626,6 +626,7 @@ class ZeroBoxATLASModel(BoxATLASModel):
                                           tf.uint8,
                                           name="predicted_masks")
 
+
 class SmallUNetBoxATLASModel(BoxATLASModel):
     def __init__(self, FLAGS):
         """
@@ -702,6 +703,7 @@ class LargeUNetBoxATLASModel(BoxATLASModel):
         self.predicted_masks_op = tf.cast(self.predicted_mask_probs_op > 0.5,
                                           tf.uint8,
                                           name="predicted_masks")
+
 
 class ExtraLargeUNetBoxATLASModel(BoxATLASModel):
     def __init__(self, FLAGS):
