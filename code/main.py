@@ -19,7 +19,7 @@ EXPERIMENTS_DIR = os.path.join(MAIN_DIR, "experiments")
 
 # General
 tf.app.flags.DEFINE_integer("batch_size", 100, "Sets the batch size.")
-tf.app.flags.DEFINE_integer("eval_every", 1000,
+tf.app.flags.DEFINE_integer("eval_every", 100,
                             "How many iterations to do per calculating the "
                             "dice coefficient on the dev set. This operation "
                             "is time-consuming, so should not be done often.")
@@ -39,7 +39,7 @@ tf.app.flags.DEFINE_integer("print_every", 1,
                             "How many iterations to do per print.")
 tf.app.flags.DEFINE_integer("save_every", 500,
                             "How many iterations to do per save.")
-tf.app.flags.DEFINE_integer("summary_every", 100,
+tf.app.flags.DEFINE_integer("summary_every", 500,
                             "How many iterations to do per TensorBoard "
                             "summary write.")
 
