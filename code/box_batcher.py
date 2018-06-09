@@ -21,17 +21,22 @@ class BoxBatch(object):
         :param target_masks_batch: A numpy array with shape batch_size by input_dims
         that represents a batch of target masks.
         :param input_paths_batch: the input paths
-        :param boxes_batch: the box used to crop the input and mask
+        :param boxes_batch: the boxes used to crop the input and mask
         :param target_mask_paths_batch: The mask paths corresponding to the inputs
 
         """
-        assert(len(inputs_batch) == len(target_masks_batch) == len(boxes_batch))
+        assert(len(
+            inputs_batch) == len(
+            target_masks_batch) == len(
+            inputs_batch) == len(
+            target_masks_batch) == len(
+            boxes_batch))
         self.inputs_batch = inputs_batch
         self.target_masks_batch = target_masks_batch
-        self.batch_size = len(self.boxes_batch)
         self.input_paths_batch = input_paths_batch
         self.boxes_batch = boxes_batch
         self.target_mask_paths_batch = target_mask_paths_batch
+        self.batch_size = len(self.boxes_batch)
 
 
 class BoxBatchGenerator():
@@ -70,29 +75,29 @@ class BoxBatchGenerator():
         self._input_paths = []
         self._boxes = []
         self._target_mask_paths = []
+        assert(shape in BOX_LABELS)
         label = BOX_LABELS[shape]
         zipped_path_lists = zip(input_path_lists, target_mask_path_lists)
         for input_path_list, target_mask_path_list in zipped_path_lists:
             assert(len(input_path_list) == 1)
-            input_path = input_path[0]
+            input_path = input_path_list[0]
             assert(len(target_mask_path_list) == 1)
             mask_paths = target_mask_path_list[0]
             for mask_path in mask_paths:
                 base_name = os.path.splitext(mask_path)[0]
-                label = BOX_LABELS[shape]
                 try:
                     with open(base_name + "-augmented-" + label + ".json") as f:
-                        boxes = json.read(f)
+                        boxes = json.load(f)
                         for box in boxes:
                             for _ in range(2 if self._flip_images else 1):  # odds correspond to flipped images
-                            self._boxes += box
-                            self._input_paths += input_path
-                            self._target_mask_paths += mask_path
+                                self._boxes.append(box)
+                                self._input_paths.append(input_path)
+                                self._target_mask_paths.append(mask_path)
                 except FileNotFoundError:
                     pass
 
         assert(len(self._boxes) == len(self._input_paths) == len(self._target_mask_paths))
-        print("loaded", len(self._boxes), "examples into a BoxBatchGenerator.")
+        # print("loaded", len(self._boxes), "examples into a BoxBatchGenerator.")
 
         self._batch_size = batch_size
         self._batches = []
@@ -103,7 +108,7 @@ class BoxBatchGenerator():
             self._boxes = self._boxes[:self._num_samples]
             self._target_mask_paths = self._target_mask_paths[:self._num_samples]
         self._pointer = 0
-        self._order = list(range(len(self._box_lists)))
+        self._order = list(range(len(self._boxes)))
 
         # When the batch_size does not even divide the number of input paths,
         # fill the last batch with randomly selected paths
@@ -221,5 +226,5 @@ class BoxBatchGenerator():
                 np.asarray(inputs_batch),
                 np.asarray(target_masks_batch),
                 input_paths_batch,
-                boxes,
+                boxes_batch,
                 target_mask_paths_batch))

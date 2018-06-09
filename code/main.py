@@ -19,7 +19,7 @@ EXPERIMENTS_DIR = os.path.join(MAIN_DIR, "experiments")
 
 # General
 tf.app.flags.DEFINE_integer("batch_size", 100, "Sets the batch size.")
-tf.app.flags.DEFINE_integer("eval_every", 500,
+tf.app.flags.DEFINE_integer("eval_every", 1000,
                             "How many iterations to do per calculating the "
                             "dice coefficient on the dev set. This operation "
                             "is time-consuming, so should not be done often.")
