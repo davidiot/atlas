@@ -5,8 +5,15 @@ import json
 
 from PIL import Image
 
-# counts: {(10, 10): 4088, (30, 30): 3228, (70, 70): 3049, (150, 150): 1313}
-BOX_LABELS = {(12, 12): 'S', (32, 32): 'M', (72, 72): 'L', (150, 150): 'XL'}
+# Generated  3416  canonical boxes of shape  (12, 12)  ( S )
+# Generated  3690  canonical boxes of shape  (32, 32)  ( M )
+# Generated  2644  canonical boxes of shape  (64, 64)  ( L )
+# Generated  1928  canonical boxes of shape  (160, 160)  ( XL )
+# Generated  501401  total boxes, including  159106  positive examples of shape  (12, 12)  ( S )
+# Generated  681839  total boxes, including  338216  positive examples of shape  (32, 32)  ( M )
+# Generated  613988  total boxes, including  275666  positive examples of shape  (64, 64)  ( L )
+# Generated  486804  total boxes, including  153040  positive examples of shape  (160, 160)  ( XL )
+BOX_LABELS = {(12, 12): 'S', (32, 32): 'M', (64, 64): 'L', (160, 160): 'XL'}
 
 
 def box_width(box):
