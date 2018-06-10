@@ -13,6 +13,9 @@ import utils
 from data_batcher import SliceBatchGenerator, BoundingBatchGenerator
 from modules import *
 from box_batcher import BoxBatchGenerator
+from bounding_boxer import BOX_LABELS
+
+BOX_SHAPES = list(BOX_LABELS)
 
 
 class ATLASModel(object):
@@ -577,6 +580,7 @@ class MediumUNetATLASModel(ATLASModel):
         self.predicted_masks_op = tf.cast(self.predicted_mask_probs_op > 0.5,
                                           tf.uint8,
                                           name="predicted_masks")
+        pdb.set_trace()
 
 
 class BoundingATLASModel(ATLASModel):
@@ -607,20 +611,39 @@ class BoundingATLASModel(ATLASModel):
         encoder = BoundingConvEncoder(input_shape=self.input_dims,
                                       keep_prob=self.keep_prob,
                                       scope_name="bounding_encoder")
-        hidden_op = encoder.build_graph(tf.expand_dims(self.inputs_op, 3))
-        logits_op = tf.zeros(
+
+        # returns 3 variables to encode the bounding box for each box size.
+        # the first determines the logit of that bounding box
+        # the second and third determine the position of the box.
+        # we need to transform each of the (prob, x, y) pairs into slices.
+        bounding_box_encoding_op = tf.reshape(
+            encoder.build_graph(tf.expand_dims(self.inputs_op, 3)),
+            [self.FLAGS.batch_size, 3 * len(BOX_LABELS)])
+
+        logits_op = tf.get_variable(
+            name="logits",
             shape=[self.FLAGS.batch_size] + self.input_dims,
+            initializer=tf.zeros_initializer(),
             dtype=tf.float32)
-        pdb.set_trace()
-        # Only squeezes the last dimension (do not squeeze the batch dimension)
-        self.logits_op = hidden_op
-        self.predicted_mask_probs_op = tf.sigmoid(self.logits_op,
-                                                  name="predicted_mask_probs")
-        self.predicted_masks_op = tf.cast(self.predicted_mask_probs_op > 0.5,
-                                          dtype=tf.uint8,
-                                          name="predicted_masks")
-        self.logits_op = tf.ones(shape=[self.FLAGS.batch_size] + self.input_dims,
-                                 dtype=tf.float32) * c
+
+        for batch_index in range(self.FLAGS.batch_size):
+            batch_encodings = bounding_box_encoding_op[batch_index]
+            for i in range(len(BOX_SHAPES)):
+                box_shape = BOX_SHAPES[i]
+                encoding_index = 3 * i
+                x_index = encoding_index + 1
+                y_index = encoding_index + 2
+                box_logit = batch_encodings[encoding_index]
+                x_range = self.input_dims[0] - box_shape[0]  # possible bounding box x-coordinates
+                y_range = self.input_dims[1] - box_shape[1]  # possible bounding box y-coordinates
+                x_start = tf.cast(tf.sigmoid(batch_encodings[x_index]) * x_range, tf.int32)
+                x_end = x_start + box_shape[0]
+                y_start = tf.cast(tf.sigmoid(batch_encodings[y_index]) * y_range, tf.int32)
+                y_end = y_start + box_shape[1]
+                logits_op[batch_index, x_start:x_end, y_start:y_end].assign(box_logit)
+
+        self.logits_op = logits_op
+
         self.predicted_mask_probs_op = tf.sigmoid(self.logits_op,
                                                   name="predicted_mask_probs")
         self.predicted_masks_op = tf.cast(self.predicted_mask_probs_op > 0.5,

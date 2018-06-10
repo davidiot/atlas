@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow as tf
+from bounding_boxer import BOX_LABELS
 
 
 class NeuralNetwork(object):
@@ -125,7 +126,7 @@ class BoundingConvEncoder(NeuralNetwork):
             drop3 = self.dropout(fc1, keep_prob=self.keep_prob, scope_name="drop3")
             fc2 = self.fc(drop3, output_shape=256, scope_name="fc2")
             drop4 = self.dropout(fc2, keep_prob=self.keep_prob, scope_name="drop4")
-            fc3 = self.fc(drop4, output_shape=12, scope_name="fc3")
+            fc3 = self.fc(drop4, output_shape=3*len(BOX_LABELS), scope_name="fc3")
             out = tf.identity(fc3, name="out")
         return out
 
