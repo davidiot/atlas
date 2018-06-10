@@ -640,7 +640,8 @@ class BoundingATLASModel(ATLASModel):
                 x_end = x_start + box_shape[0]
                 y_start = tf.cast(tf.sigmoid(batch_encodings[y_index]) * y_range, tf.int32)
                 y_end = y_start + box_shape[1]
-                logits_op[batch_index, x_start:x_end, y_start:y_end].assign(box_logit)
+                box = logits_op[batch_index, x_start:x_end, y_start:y_end]
+                box.assign(tf.maximum(box_logit, box))
 
         self.logits_op = logits_op
 
