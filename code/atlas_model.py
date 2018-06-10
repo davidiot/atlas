@@ -620,30 +620,36 @@ class BoundingATLASModel(ATLASModel):
             encoder.build_graph(tf.expand_dims(self.inputs_op, 3)),
             [self.FLAGS.batch_size, 3 * len(BOX_LABELS)])
 
-        logits_op = tf.get_variable(
-            name="logits",
-            shape=[self.FLAGS.batch_size] + self.input_dims,
-            initializer=tf.zeros_initializer(),
-            dtype=tf.float32)
-
+        box_slice_list = []
         for batch_index in range(self.FLAGS.batch_size):
             batch_encodings = bounding_box_encoding_op[batch_index]
+            box_slice = tf.zeros(self.input_dims)
             for i in range(len(BOX_SHAPES)):
                 box_shape = BOX_SHAPES[i]
                 encoding_index = 3 * i
                 x_index = encoding_index + 1
                 y_index = encoding_index + 2
                 box_logit = batch_encodings[encoding_index]
+
                 x_range = self.input_dims[0] - box_shape[0]  # possible bounding box x-coordinates
                 y_range = self.input_dims[1] - box_shape[1]  # possible bounding box y-coordinates
                 x_start = tf.cast(tf.sigmoid(batch_encodings[x_index]) * x_range, tf.int32)
                 x_end = x_start + box_shape[0]
                 y_start = tf.cast(tf.sigmoid(batch_encodings[y_index]) * y_range, tf.int32)
                 y_end = y_start + box_shape[1]
-                box = logits_op[batch_index, x_start:x_end, y_start:y_end]
-                box.assign(tf.maximum(box_logit, box))
+                paddings = tf.stack(
+                    [tf.stack([x_start, self.input_dims[0] - x_end]),
+                     tf.stack([y_start, self.input_dims[1] - y_end])])
 
-        self.logits_op = logits_op
+                logit_box = tf.ones(box_shape) * box_logit
+                box_slice = tf.maximum(
+                    box_slice,
+                    tf.reshape(
+                    tf.pad(logit_box, paddings, 'CONSTANT'),
+                    self.input_dims))
+            box_slice_list.append(box_slice)
+
+        self.logits_op = tf.stack(box_slice_list)
 
         self.predicted_mask_probs_op = tf.sigmoid(self.logits_op,
                                                   name="predicted_mask_probs")
